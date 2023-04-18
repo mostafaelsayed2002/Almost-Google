@@ -1,3 +1,32 @@
 @tailwind base;
 @tailwind components;
+@tailwind variants;
 @tailwind utilities;
+@layer base {
+  html {
+    font-variant-ligatures: historical-ligatures;
+  }
+}
+@layer utilities {
+  .h1 {
+    @apply text-4xl tracking-[-0.015em] font-bold text-white;
+  }
+  .h2 {
+    @apply text-3xl tracking-[-0.015em] font-semibold text-white;
+  }
+  .h3 {
+    @apply text-2xl tracking-[-0.015em] font-semibold text-white;
+  }
+  .p {
+    @apply text-base font-normal text-white text-opacity-50;
+  }
+  .link {
+    @apply text-base font-normal text-white text-opacity-50;
+  }
+  .em {
+    @apply text-base font-semibold text-white;
+  }
+  .small {
+    @apply text-xs font-normal text-white text-opacity-50;
+  }
+}
