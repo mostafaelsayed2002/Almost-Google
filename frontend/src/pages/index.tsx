@@ -1,3 +1,9 @@
+import { Logo } from "@/components/Logo";
+
 export default function Home() {
-  return (<h1>Almost Google!</h1>)
+  return (
+    <div className="flex flex-col items-center py-16">
+      <Logo />
+    </div>
+  );
 }
