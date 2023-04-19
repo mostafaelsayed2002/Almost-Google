@@ -23,7 +23,7 @@
     @apply text-base font-normal text-white text-opacity-50;
   }
   .link {
-    @apply text-base font-normal text-white text-opacity-50;
+    @apply text-base font-normal text-[#3B82F6] underline;
   }
   .em {
     @apply text-base font-semibold text-white;
