@@ -1,21 +1,23 @@
 @tailwind base;
 @tailwind components;
-@tailwind variants;
 @tailwind utilities;
 @layer base {
-  html {
-    font-variant-ligatures: historical-ligatures;
+  body {
+    @apply bg-[#111111] mx-auto px-4 max-w-[1200px] min-h-screen;
+  }
+  #__next {
+    @apply min-h-full;
   }
 }
 @layer utilities {
   .h1 {
-    @apply text-4xl tracking-[-0.015em] font-bold text-white;
+    @apply text-4xl tracking-[-0.015em] font-bold text-white w-fit;
   }
   .h2 {
-    @apply text-3xl tracking-[-0.015em] font-semibold text-white;
+    @apply text-3xl tracking-[-0.015em] font-semibold text-white w-fit;
   }
   .h3 {
-    @apply text-2xl tracking-[-0.015em] font-semibold text-white;
+    @apply text-2xl tracking-[-0.015em] font-semibold text-white w-fit;
   }
   .p {
     @apply text-base font-normal text-white text-opacity-50;
