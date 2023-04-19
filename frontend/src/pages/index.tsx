@@ -44,7 +44,7 @@ export default function Home() {
           }
         />
       </section>
-      <h3 className="h3 place-self-center col-span-3">About Us</h3>
+     <a href="/aboutus" className=" h3 place-self-center col-span-3"> <h3>About Us</h3></a>
     </div>
   );
 }

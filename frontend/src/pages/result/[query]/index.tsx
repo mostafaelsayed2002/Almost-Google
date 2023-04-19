@@ -27,10 +27,15 @@ export default function ResultPage() {
           <button className="bg-black text-body  rouned rounded-lg text-center py-2 px-4 border border-body ">
             3
           </button>
+          <button className="bg-black text-body  rouned rounded-lg text-center py-2 px-4 border border-body ">
+           <div className="flex flex-row gap-1"> Next <img src="https://i.imgur.com/omssABX.png"></img></div>
+          </button>
+          
+
         </div>
       </div>
 
-      <h3 className="h3 place-self-center">About Us</h3>
+      <a href="/aboutus"><h3 className="h3 place-self-center">About Us</h3></a>
     </div>
   );
 }
