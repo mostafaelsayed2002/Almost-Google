@@ -3,8 +3,8 @@ import { ReactElement } from "react";
 interface Props {
   title: string;
   text: string;
-  children?: ReactElement | ReactElement[];
   image: ReactElement;
+  children?: ReactElement | ReactElement[];
 }
 export const FeatureCard = ({ text, title, children, image }: Props) => {
   return (
