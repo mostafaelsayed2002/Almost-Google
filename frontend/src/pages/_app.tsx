@@ -1,6 +1,7 @@
 import "@/styles/globals.css";
 import type { AppProps } from "next/app";
 import { Playfair_Display, Roboto_Slab } from "next/font/google";
+
 const robotoslab = Roboto_Slab({
   variable: "--font-roboto",
   weight: ["400", "500", "600", "700"],
@@ -14,7 +15,7 @@ const playfair = Playfair_Display({
 export default function App({ Component, pageProps }: AppProps) {
   return (
     <main
-      className={`${robotoslab.variable} ${playfair.variable} font-roboto w-screen min-h-screen bg-[#111111]`}
+      className={`${robotoslab.variable} ${playfair.variable} font-roboto min-h-full`}
     >
       <Component {...pageProps} />
     </main>

@@ -7,9 +7,12 @@ module.exports = {
   ],
   theme: {
     extend: {
+      colors: {
+        body: "rgba(256,256,256,0.5)",
+      },
       fontFamily: {
-        playfair: [/* "Playfair Display", "serif" */ "var(--font-playfair)"],
-        roboto: [/* "Roboto Slab", "serif" */ "var(--font-roboto)"],
+        playfair: ["var(--font-playfair)"],
+        roboto: ["var(--font-roboto)"],
       },
     },
   },
