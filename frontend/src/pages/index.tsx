@@ -1,13 +1,11 @@
 import { FeatureCard } from "@/components/FeaturesCard";
 import { Logo } from "@/components/Logo";
-import { Result } from "@/components/Result";
 import { SearchBar } from "@/components/SearchBar";
-import { Resultpage } from "./Resultpage";
 
 export default function Home() {
   return (
-    <div className="flex flex-col py-16 min-h-screen gap-32">
-      {/* <section className="flex flex-col gap-8 w-full items-center col-span-3 row-span-1">
+    <div className="flex flex-col py-16 min-h-screen justify-between">
+      <section className="flex flex-col gap-8 w-full items-center">
         <Logo />
         <SearchBar />
       </section>
@@ -47,10 +45,6 @@ export default function Home() {
         />
       </section>
       <h3 className="h3 place-self-center col-span-3">About Us</h3>
- */}
-
-    <Resultpage/>
-
     </div>
   );
 }

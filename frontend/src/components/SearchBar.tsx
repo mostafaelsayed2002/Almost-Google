@@ -8,11 +8,11 @@ export const SearchBar = ({ searchTerm }: Props) => {
   return (
     <form
       onSubmit={onSubmit}
-      className="w-full border-2 border-body p-4 flex rounded-lg bg-black "
+      className="w-full border-2 border-body flex rounded-lg bg-black md:p-4 p-2"
     >
       <input
         type="text"
-        className="bg-transparent outline-none text-white flex-grow w-full"
+        className="bg-transparent outline-none text-white flex-grow w-full "
       />
       <svg
         width="24"
