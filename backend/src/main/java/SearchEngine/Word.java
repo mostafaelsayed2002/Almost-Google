@@ -16,22 +16,10 @@ public class Word {
 
     @Override
     public int hashCode() {
-
-//        int x = 0;
-//        for (int i = 0; i < word.length(); i++) {
-//            char c = word.charAt(i);
-//            x = x * 256 + (int) c;
-//        }
         return Objects.hash(word);
     }
-
     @Override
     public boolean equals(Object obj) {
-//        Word w = (Word) obj;
-//        if (w.word == this.word)
-//            return true;
-//        return false;
-
         if (!(obj instanceof Word)) {
             return false;
         }
