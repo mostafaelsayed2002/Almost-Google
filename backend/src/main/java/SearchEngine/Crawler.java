@@ -6,10 +6,10 @@ package SearchEngine;
  */
 
 
-import com.mongodb.client.FindIterable;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.MongoClient;
+import com.mongodb.client.*;
+import io.github.cdimascio.dotenv.Dotenv;
+import io.github.cdimascio.dotenv.DotenvBuilder;
+import org.apache.commons.lang.ObjectUtils;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -20,11 +20,16 @@ import java.util.*;
 
 import static com.mongodb.client.MongoClients.create;
 
+import org.jgrapht.Graph;
+import org.jgrapht.Graphs;
+import org.jgrapht.graph.DefaultDirectedGraph;
+import org.jgrapht.graph.DefaultEdge;
 //
 
 
 class CrawlerStore {
     public static int MAX_SIZE = 40;
+    public static Graph<String, DefaultEdge> graph = new DefaultDirectedGraph<>(DefaultEdge.class);
     private final Queue<String> queue = new LinkedList<>();
     private final Hashtable<Integer, Boolean> rec = new Hashtable<>();
     private final MongoCollection<org.bson.Document> queueCollection;
@@ -40,7 +45,7 @@ class CrawlerStore {
     private static ArrayList<String> readSeeds() {
         ArrayList<String> seeds = new ArrayList<>();
         try {
-            File seedFile = new File("/home/walid/vsCode/Almost-Google/backend/src/main/java/SearchEngine/seed.txt");
+            File seedFile = new File("D:\\Studying\\Labs\\Almost-Google\\backend\\src\\main\\java\\SearchEngine\\seed.txt");
             Scanner seedFileScanner = new Scanner(seedFile);
             while (seedFileScanner.hasNextLine()) {
                 String link = seedFileScanner.nextLine();
@@ -57,6 +62,7 @@ class CrawlerStore {
         if (!readSeed && visitedCollection.countDocuments(new org.bson.Document().append("url", seeds.get(0))) == 0)
             synchronized (this) {
                 queue.addAll(seeds);
+                initialGraph(seeds);
                 System.out.println("======================================= Initial Fill ===========================");
             }
         else {
@@ -111,6 +117,39 @@ class CrawlerStore {
     public int queueSize() {
         return queue.size();
     }
+
+    public void addToGraph(org.bson.Document url, ArrayList<org.bson.Document> urls) {
+        synchronized (this) {
+            System.out.println("------------------------------------------------------------------------");
+            System.out.println("--------------------" + url.get("url").toString());
+            System.out.println("------------------------------------------------------------------------");
+            for (DefaultEdge e : graph.edgeSet()) {
+                // check if the edge contains the specific vertex
+                if (graph.getEdgeSource(e).equals(url.get("url").toString()) || graph.getEdgeTarget(e).equals(url.get("url").toString())) {
+                    System.out.println(e.toString()); // print the edge
+                }
+            }
+            System.out.println("------------------------------------------------------------------------");
+            for (org.bson.Document u : urls) {
+                if (rec.containsKey(u.get("url").hashCode()) && visitedCollection.countDocuments(new org.bson.Document().append("url", u.get("url").hashCode())) != 0) {
+                    continue;
+                } else {
+                    graph.addVertex(u.get("url").toString());
+                    graph.addEdge(url.get("url").toString(), u.get("url").toString());
+                }
+            }
+        }
+    }
+
+    public void initialGraph(ArrayList<String> urls) {
+        graph.addVertex("Head");
+        for (String u : urls) {
+            graph.addVertex(u);
+            graph.addEdge("Head", u);
+        }
+        System.out.println("------------------------------------------------------------------------");
+        System.out.println(graph.toString());
+    }
 }
 
 class Consumer implements Runnable {
@@ -122,6 +161,57 @@ class Consumer implements Runnable {
         cwd = Paths.get("").toAbsolutePath().toString();
         store = cs;
         crawl();
+    }
+
+    private static void storeHTMLOnDisk(String pageLink, String JsonDocument) {
+        try {
+            String name = pageLink;
+            name = name.replace("*", "`{}");
+            name = name.replace("://", "}");
+            name = name.replace("/", "{");
+            name = name.replace("?", "`");
+            File file = new File(cwd + "/Documents/" + name + ".json");
+            System.out.println(file.getName());
+            System.out.println(cwd + "/Documents/" + name + ".json");
+            file.createNewFile();
+            FileWriter writer = new FileWriter(file);
+            writer.write(JsonDocument);
+            writer.close();
+            System.out.println("Link " + pageLink + " done");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static Document requestPage(String page) {
+        try {
+            Connection connection = Jsoup.connect(page);
+            Document doc = connection.get();
+            if (connection.response().statusMessage().equals("OK"))
+                return doc;
+            else
+                return null;
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    private static String createCompactString(Document doc) {
+
+        String[] htmlParagraphTags = {"p", "h1", "h2", "h3", "a", "div"};
+        StringBuilder CompactString = new StringBuilder();
+        for (var tag : htmlParagraphTags) {
+            for (var element : doc.select(tag)) {
+                String text = element.ownText();
+                int i = text.length() / 2;
+                while (text.length() > 0 && i < text.length() && text.charAt(i) == ' ') {
+                    i += 1;
+                }
+                if (i < text.length())
+                    CompactString.append(text.charAt(i));
+            }
+        }
+        return CompactString.substring(CompactString.length() / 2);
     }
 
     @Override
@@ -172,56 +262,6 @@ class Consumer implements Runnable {
         }
     }
 
-    private static void storeHTMLOnDisk(String pageLink, String JsonDocument) {
-        try {
-            String name = pageLink;
-            name = name.replace("*", "`{}");
-            name = name.replace("://", "}");
-            name = name.replace("/", "{");
-            name = name.replace("?", "`");
-            File file = new File(cwd + "/Documents/" + name + ".json");
-            System.out.println(file.getName());
-            file.createNewFile();
-            FileWriter writer = new FileWriter(file);
-            writer.write(JsonDocument);
-            writer.close();
-            System.out.println("Link " + pageLink + " done");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static Document requestPage(String page) {
-        try {
-            Connection connection = Jsoup.connect(page);
-            Document doc = connection.get();
-            if (connection.response().statusMessage().equals("OK"))
-                return doc;
-            else
-                return null;
-        } catch (IOException e) {
-            return null;
-        }
-    }
-
-    private static String createCompactString(Document doc) {
-
-        String[] htmlParagraphTags = {"p", "h1", "h2", "h3", "a", "div"};
-        StringBuilder CompactString = new StringBuilder();
-        for (var tag : htmlParagraphTags) {
-            for (var element : doc.select(tag)) {
-                String text = element.ownText();
-                int i = text.length() / 2;
-                while (text.length() > 0 && i < text.length() && text.charAt(i) == ' ') {
-                    i += 1;
-                }
-                if (i < text.length())
-                    CompactString.append(text.charAt(i));
-            }
-        }
-        return CompactString.substring(CompactString.length() / 2);
-    }
-
 }
 
 class Producer implements Runnable {
@@ -263,6 +303,7 @@ public class Crawler {
     private static MongoCollection<org.bson.Document> queueCollection;
     private static CrawlerStore store;
 
+
     public static void main(String[] args) {
         initDatabase();
         store = new CrawlerStore(queueCollection, visitedCollection);
@@ -275,7 +316,8 @@ public class Crawler {
     }
 
     private static void initDatabase() {
-        MongoClient mongoClient = create("mongodb://127.0.0.1:27017");
+        Dotenv dotenv = new DotenvBuilder().load();
+        MongoClient mongoClient = MongoClients.create(dotenv.get("ConctionString"));
         database = mongoClient.getDatabase("test");
         visitedCollection = database.getCollection("visited");
         queueCollection = database.getCollection("queue");
