@@ -1,10 +1,15 @@
 package SearchEngine;
 
 
-public class Website {
+import kotlin.Pair;
+
+import java.util.Vector;
+
+public class Website  {
 
     public String url;
-    public String[] places;
+   // public String[] places;
+    public Vector<Pair<String,String>>places;
     public int TF;
     public double TF_IDF;
     public double pageRank;
@@ -12,8 +17,7 @@ public class Website {
 
 
     Website() {
-        places = new String[8];
-        url = "";
+        places = new Vector<>();
         TF = 0;
         TF_IDF = 0;
     }
