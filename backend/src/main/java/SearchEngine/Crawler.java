@@ -34,6 +34,8 @@ class CrawlerStore {
     private final Hashtable<Integer, Boolean> rec = new Hashtable<>();
     private final MongoCollection<org.bson.Document> queueCollection;
     private final MongoCollection<org.bson.Document> visitedCollection;
+
+
     private boolean readSeed;
 
     CrawlerStore(MongoCollection<org.bson.Document> qc, MongoCollection<org.bson.Document> vc) {
@@ -118,14 +120,14 @@ class CrawlerStore {
         return queue.size();
     }
 
-    public void addToGraph(org.bson.Document url, ArrayList<org.bson.Document> urls) {
+    public void addToGraph(String url, ArrayList<org.bson.Document> urls) {
         synchronized (this) {
             System.out.println("------------------------------------------------------------------------");
-            System.out.println("--------------------" + url.get("url").toString());
+            System.out.println("--------------------" + url);
             System.out.println("------------------------------------------------------------------------");
             for (DefaultEdge e : graph.edgeSet()) {
                 // check if the edge contains the specific vertex
-                if (graph.getEdgeSource(e).equals(url.get("url").toString()) || graph.getEdgeTarget(e).equals(url.get("url").toString())) {
+                if (graph.getEdgeSource(e).equals(url) || graph.getEdgeTarget(e).equals(url)) {
                     System.out.println(e.toString()); // print the edge
                 }
             }
@@ -135,7 +137,7 @@ class CrawlerStore {
                     continue;
                 } else {
                     graph.addVertex(u.get("url").toString());
-                    graph.addEdge(url.get("url").toString(), u.get("url").toString());
+                    graph.addEdge(url, u.get("url").toString());
                 }
             }
         }
@@ -250,8 +252,10 @@ class Consumer implements Runnable {
                     linksCrawled.add(new org.bson.Document()
                             .append("url", newLinkStr));
                 }
-                store.addToQueueCollection(linksCrawled);
-
+                if (!linksCrawled.isEmpty()) {
+                    store.addToQueueCollection(linksCrawled);
+                    store.addToGraph(pageLink, linksCrawled);
+                }
                 String JsonDocument = (new org.bson.Document()
                         .append("url", pageLink)
                         .append("document", doc.toString())).toJson();
