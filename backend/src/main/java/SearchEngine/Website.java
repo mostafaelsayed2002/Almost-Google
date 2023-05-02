@@ -11,12 +11,15 @@ public class Website  {
    // public String[] places;
     public Vector<Pair<String,String>>places;
     public int TF;
-    public String title;
+    public double TF_IDF;
+    public double pageRank;
+    public double lastRank;     // =pageRank*TF_IDF
 
 
     Website() {
         places = new Vector<>();
         TF = 0;
+        TF_IDF = 0;
     }
 }
 
