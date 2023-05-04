@@ -1,18 +1,24 @@
 package AlmostGoogle;
 
+import SearchEngine.Website;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import io.github.cdimascio.dotenv.Dotenv;
+import io.github.cdimascio.dotenv.DotenvBuilder;
+import kotlin.Pair;
 import org.bson.Document;
+import org.json.JSONArray;
 import org.json.simple.JSONObject;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.Mapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.tartarus.snowball.ext.englishStemmer;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.Stack;
+import java.util.*;
 
 @SpringBootApplication
 @RestController
@@ -24,34 +30,124 @@ public class AlmostGooogleApplication {
 		SpringApplication.run(AlmostGooogleApplication.class, args);
 	}
 
+	static MongoCollection<Document> InitDataBase() {
+		Dotenv dotenv = new DotenvBuilder().load();
+		MongoClient mongoClient = MongoClients.create(dotenv.get("ConctionString"));
+		MongoDatabase database = mongoClient.getDatabase("AlmostGoogle");
+		var collection = database.getCollection("searchIndexer");
+		return collection;
+	}
+
 
 	@GetMapping("/")
-	public JSONObject getResult(@RequestParam String Input) {
+	public String  getResult(@RequestParam String Input) {
 
+		boolean type = true;
+		if (Input.charAt(0) == '\"' && Input.charAt(Input.length() - 1) == '\"') type = false;
+		englishStemmer stemmer = new englishStemmer();
 
-		JSONObject res= new JSONObject();
-		String [] words = Input.split("\\s");
-		//Preprocessing
-
-		for (int i =0; i<words.length;i++)
-		{
-			 words[i]=words[i].replaceAll("[^a-zA-Z\\\\s]", "");
-			if (stopWords.contains(words[i].toLowerCase()))
-				words[i]=words[i].replaceAll(words[i],"");
+		String[] input = Input.split("\\s");
+		Vector<String> words = new Vector<>();
+		for (String word : input) {
+			word = word.replaceAll("[^a-zA-Z\\\\s]", "");
+			if(word.equals("")) continue;
+			if (!stopWords.contains(word.toLowerCase())) {
+				stemmer.setCurrent(word); /* use the stemmer to stem the word */
+				stemmer.stem();
+				word = stemmer.getCurrent();
+				words.add(word);
+			}
 		}
-		//if (word.equals("")) continue;
-          if (true)
-		  {
-            res.put("Name",words[0]+" "+words[1]);
 
-		  }
-		return res;
-
-
+		Vector<HashSet<Website>> Graph=new Vector<>();
+		for(int i=0;i<words.size();i++)
+		{
+			HashSet<Website> temp = new HashSet<>();
+			Graph.add(temp);
+		}
 
 
+		var collection = InitDataBase();
+		for(int i=0; i<words.size();i++)
+		{
+			Document query = new Document("word", words.get(i).toLowerCase());
+			Document result = collection.find(query).first();
+			List<Document> websites = (List<Document>) result.get("websites");
+
+			for (Document website : websites) {
+				Website w = new Website();
+				w.url=website.getString("url");
+				w.title=website.getString("title");
+				w.TF=website.getInteger("TF");
+				//w.lastRank= website.getDouble("lastRank");
+				w.lastRank=website.getInteger("lastRank");
+				List<Document> places = (List<Document>) website.get("places");
+				for (Document place: places)
+				{
+					String tag= place.getString("place");
+					String text= place.getString("content");
+					w.places.add(new Pair<String,String >(tag,text));
+				}
+				 Graph.get(i).add(w);
+			}
+		}
+
+        Vector<Website>Intersection=new Vector<>();
+		for (Website web : Graph.get(0)) {
+
+			int rank =0;
+		  boolean Intersected =true;
+			for (HashSet<Website> H: Graph) {
+				if(!H.contains(web)) {
+					Intersected=false;
+					break;
+				}
+				else {
+					for (Website w:H)
+						if(w.url.equals(web.url))
+							rank+=w.lastRank;
+				}
+			}
+			if(Intersected) {
+				web.lastRank=rank;
+				Intersection.add(web);
+			}
+		}
+
+		Comparator<Website> myComparator = new Comparator<Website>() {
+			@Override
+			public int compare(Website o1, Website o2) {
+				return (int) (o2.getMyVariable() - o1.getMyVariable());
+			}
+		};
+		Collections.sort(Intersection, myComparator );
+
+
+
+		 for (Website web :Intersection)
+			 System.out.println(" url: "+web.url+" lastRank: "+web.lastRank);
+
+
+
+		JSONArray res= new JSONArray();
+
+		 for (Website web :Intersection)
+		 {
+			 JSONObject w= new JSONObject();
+			 w.put("url", web.url); //URL
+			 w.put("title", web.title); //title
+             w.put("brief",web.places.get(0).getSecond());
+
+			 res.put(w);
+
+		 }
+
+		  System.out.println(res);
+          return res.toString();
+		}
 	}
 
 
 
-}
+
+
