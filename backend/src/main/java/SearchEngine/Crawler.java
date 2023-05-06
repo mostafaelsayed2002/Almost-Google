@@ -7,9 +7,13 @@ package SearchEngine;
 
 
 import com.mongodb.client.*;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Updates;
+import com.mongodb.client.result.UpdateResult;
 import io.github.cdimascio.dotenv.Dotenv;
 import io.github.cdimascio.dotenv.DotenvBuilder;
 import org.apache.commons.lang.ObjectUtils;
+import org.bson.conversions.Bson;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -34,13 +38,15 @@ class CrawlerStore {
     private final Hashtable<Integer, Boolean> rec = new Hashtable<>();
     private final MongoCollection<org.bson.Document> queueCollection;
     private final MongoCollection<org.bson.Document> visitedCollection;
+    private final MongoCollection<org.bson.Document> graphCollection;
 
 
     private boolean readSeed;
 
-    CrawlerStore(MongoCollection<org.bson.Document> qc, MongoCollection<org.bson.Document> vc) {
+    CrawlerStore(MongoCollection<org.bson.Document> qc, MongoCollection<org.bson.Document> vc, MongoCollection<org.bson.Document> gc) {
         queueCollection = qc;
         visitedCollection = vc;
+        graphCollection = gc;
         readSeed = false;
     }
 
@@ -64,7 +70,11 @@ class CrawlerStore {
         if (!readSeed && visitedCollection.countDocuments(new org.bson.Document().append("url", seeds.get(0))) == 0)
             synchronized (this) {
                 queue.addAll(seeds);
-                initialGraph(seeds);
+                try {
+                    initialGraph(seeds);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
                 System.out.println("======================================= Initial Fill ===========================");
             }
         else {
@@ -120,7 +130,7 @@ class CrawlerStore {
         return queue.size();
     }
 
-    public void addToGraph(String url, ArrayList<org.bson.Document> urls) {
+    public void addToGraph(String url, ArrayList<org.bson.Document> urls) throws IOException {
         synchronized (this) {
             System.out.println("------------------------------------------------------------------------");
             System.out.println("--------------------" + url);
@@ -140,15 +150,28 @@ class CrawlerStore {
                     graph.addEdge(url, u.get("url").toString());
                 }
             }
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            ObjectOutputStream oos = new ObjectOutputStream(bos);
+            oos.writeObject(graph);
+            byte[] graphBytes = bos.toByteArray();
+            Bson filter = Filters.eq("name", "Graph");
+            Bson update = Updates.set("graph", graphBytes);
+            graphCollection.updateOne(filter, update);
+
         }
     }
 
-    public void initialGraph(ArrayList<String> urls) {
+    public void initialGraph(ArrayList<String> urls) throws IOException {
         graph.addVertex("Head");
         for (String u : urls) {
             graph.addVertex(u);
             graph.addEdge("Head", u);
         }
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(bos);
+        oos.writeObject(graph);
+        byte[] graphBytes = bos.toByteArray();
+        graphCollection.insertOne(new org.bson.Document("name", "Graph").append("graph", graphBytes));
         System.out.println("------------------------------------------------------------------------");
         System.out.println(graph.toString());
     }
@@ -255,7 +278,11 @@ class Consumer implements Runnable {
                 }
                 if (!linksCrawled.isEmpty()) {
                     store.addToQueueCollection(linksCrawled);
-                    store.addToGraph(pageLink, linksCrawled);
+                    try {
+                        store.addToGraph(pageLink, linksCrawled);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
                 String JsonDocument = (new org.bson.Document()
                         .append("url", pageLink)
@@ -306,12 +333,13 @@ public class Crawler {
     private static MongoDatabase database;
     private static MongoCollection<org.bson.Document> visitedCollection;
     private static MongoCollection<org.bson.Document> queueCollection;
+    private static MongoCollection<org.bson.Document> graphCollection;
     private static CrawlerStore store;
 
 
     public static void main(String[] args) {
         initDatabase();
-        store = new CrawlerStore(queueCollection, visitedCollection);
+        store = new CrawlerStore(queueCollection, visitedCollection, graphCollection);
         (new Thread(new Producer(store), "p1")).start();
         (new Thread(new Consumer(store), "c1")).start();
         (new Thread(new Consumer(store), "c2")).start();
@@ -326,5 +354,7 @@ public class Crawler {
         database = mongoClient.getDatabase("test");
         visitedCollection = database.getCollection("visited");
         queueCollection = database.getCollection("queue");
+        graphCollection = database.getCollection("graph");
+
     }
 }
