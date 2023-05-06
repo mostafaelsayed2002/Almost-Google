@@ -12,12 +12,14 @@ import org.jgrapht.Graph;
 import org.jgrapht.alg.scoring.PageRank;
 import org.jgrapht.graph.DefaultEdge;
 import com.mongodb.client.model.Filters;
+
+import java.util.Arrays;
+
 import org.bson.types.Binary;
 import org.springframework.core.SpringVersion;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
+import java.io.*;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -46,9 +48,13 @@ public class Ranker {
         }
     }
 
-//    private static void getset() {
-//        Document doc = graphCollection.find().first();
-//    }
+    private static void getset() {
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream("set.ser"))) {
+            dictionary = (Set<Word>) ois.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
 
     private static void calcRank() {
         var dampingFactor = 0.85;
@@ -80,11 +86,12 @@ public class Ranker {
         graphCollection = database.getCollection("graph");
     }
 
+
     public static void main(String[] args) {
         initDataBase();
         getGraph();
         webCount = graph.vertexSet().size();
-        dictionary = Indexer.dictionary;
+        getset();
         calcRank();
         sortWeb();
     }
