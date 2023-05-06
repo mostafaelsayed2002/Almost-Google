@@ -1,5 +1,6 @@
 package AlmostGoogle;
 
+import SearchEngine.Result;
 import SearchEngine.Website;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
@@ -9,19 +10,12 @@ import io.github.cdimascio.dotenv.Dotenv;
 import io.github.cdimascio.dotenv.DotenvBuilder;
 import kotlin.Pair;
 import org.bson.Document;
-import org.json.JSONArray;
-import org.json.simple.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.tartarus.snowball.ext.englishStemmer;
 
 import java.nio.file.Files;
@@ -63,7 +57,8 @@ public class AlmostGooogleApplication {
   }
 
   @GetMapping("/")
-  public ResponseEntity<String> getResult(@RequestParam String Input) {
+  @CrossOrigin(origins = "http://localhost:3000")
+  public @ResponseBody ArrayList<Result> getResult(@RequestParam String Input) {
 
     boolean type = true;
     if (Input.charAt(0) == '\"' && Input.charAt(Input.length() - 1) == '\"') type = false;
@@ -184,18 +179,12 @@ public class AlmostGooogleApplication {
 
     for (Website web : Intersection)
       System.out.println(" url: " + web.url + " lastRank: " + web.lastRank);
-
-    JSONArray arrRes = new JSONArray();
+    // for single words only
+    ArrayList<Result> results = new ArrayList<>();
     for (Website web : Intersection) {
-      JSONObject w = new JSONObject();
-      w.put("url", web.url); //URL
-      w.put("title", web.title); //title
-//      w.put("brief", web.places.get(0).getSecond());
-      arrRes.put(w);
+      var x = new Result(web.url, web.places.get(0).getSecond(), web.title);
+      results.add(x);
     }
-    JSONObject res = new JSONObject();
-    res.put("results", arrRes); 
-    System.out.println(res.toString());
-    return new ResponseEntity<>(res.toString(), HttpStatus.OK);
+    return results;
   }
 }

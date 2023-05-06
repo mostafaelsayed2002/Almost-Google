@@ -15,6 +15,7 @@ export const SearchBar = () => {
       <input
         type="text"
         onChange={(e) => setSearchTerm(e.target.value)}
+        value={(router.pathname === "/result" && router.query.searchterm? router.query.searchterm : "")}
         className="bg-transparent outline-none text-white flex-grow w-full "
       />
       <svg

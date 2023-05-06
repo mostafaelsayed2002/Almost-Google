@@ -1,15 +1,8 @@
-import { Logo } from "@/components/Logo";
 import { Result } from "@/components/Result";
-import { SearchBar } from "@/components/SearchBar";
-import axios from "axios";
+import { result } from "@/utils/types/result";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-interface result {
-  brief: string;
-  title: string;
-  url: string;
-}
-axios.defaults.headers.get['Access-Control-Allow-Origin'] = '*';
+
 export default function ResultPage() {
   const router = useRouter();
   const { searchterm } = router.query;
@@ -17,23 +10,34 @@ export default function ResultPage() {
   const [isLoading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!searchterm)
-      return; 
+    if (!searchterm) return;
     setLoading(true);
     const fetchResults = async () => {
       setLoading(true);
-      const res = await fetch(`http://localhost:8080/?Input=${searchterm}`,
-      {
-        mode: "no-cors"
-      });
+      const res = await fetch(`http://localhost:8080/?Input=${searchterm}`);
       const data = await res.json();
-      console.log(data);
+      setLoading(false);
+      setData(data);
     };
     fetchResults();
   }, [searchterm]);
   return (
-    <div className="flex flex-col gap-16 items-center py-16">
-      {data ? data.map((reuslt) => <Result />) : null}
+    <div className="flex flex-col gap-4 py-8 items-center w-full">
+      {data
+        ? data.map((result, i) => (
+            <Result
+              isLoading={isLoading}
+              brief={result.brief}
+              title={result.title}
+              url={result.url}
+              stem={result.stem}
+              key={i}
+              word={searchterm ? searchterm?.toString() : ""}
+            />
+          ))
+        : Array.from(Array(10).keys()).map((i) => (
+            <Result isLoading={true} brief="" title="" url="" word="" stem="" key={i} />
+          ))}
     </div>
   );
 }
