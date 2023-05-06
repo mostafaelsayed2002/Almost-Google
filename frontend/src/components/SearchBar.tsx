@@ -1,17 +1,20 @@
-import { FormEventHandler } from "react";
+import { useRouter } from "next/router";
+import { FormEventHandler, useState } from "react";
 
-interface Props {
-  searchTerm?: string;
-}
-export const SearchBar = ({ searchTerm }: Props) => {
-  const onSubmit: FormEventHandler<HTMLFormElement> = (e) => {};
+export const SearchBar = () => {
+  const router = useRouter();
+  const [searchTerm, setSearchTerm] = useState("");
   return (
     <form
-      onSubmit={onSubmit}
+      onSubmit={(e) => {
+        e.preventDefault();
+        router.push(`/result/?searchterm=${searchTerm}`);
+      }}
       className="w-full border-2 border-body flex rounded-lg bg-black md:p-4 p-2"
     >
       <input
         type="text"
+        onChange={(e) => setSearchTerm(e.target.value)}
         className="bg-transparent outline-none text-white flex-grow w-full "
       />
       <svg

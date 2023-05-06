@@ -4,11 +4,7 @@ import { SearchBar } from "@/components/SearchBar";
 
 export default function Home() {
   return (
-    <div className="flex flex-col py-16 min-h-screen justify-between">
-      <section className="flex flex-col gap-8 w-full items-center">
-        <Logo />
-        <SearchBar />
-      </section>
+    <>
       <section className="flex lg:flex-row flex-col gap-8">
         <FeatureCard
           title="Sorta-Intelligent Search"
@@ -44,7 +40,7 @@ export default function Home() {
           }
         />
       </section>
-     <a href="/aboutus" className=" h3 place-self-center col-span-3"> <h3>About Us</h3></a>
-    </div>
+      
+    </>
   );
 }
