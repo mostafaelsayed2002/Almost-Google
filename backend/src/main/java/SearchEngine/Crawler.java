@@ -83,7 +83,7 @@ class CrawlerStore {
     }
 
     public void addToQueueCollection(ArrayList<org.bson.Document> urls) {
-        synchronized (queueCollection) {
+        synchronized (this) {
             queueCollection.insertMany(urls);
         }
     }
@@ -162,7 +162,6 @@ class Consumer implements Runnable {
     Consumer(CrawlerStore cs) {
         cwd = Paths.get("").toAbsolutePath().toString();
         store = cs;
-        crawl();
     }
 
     private static void storeHTMLOnDisk(String pageLink, String JsonDocument) {
@@ -188,8 +187,10 @@ class Consumer implements Runnable {
     private static Document requestPage(String page) {
         try {
             Connection connection = Jsoup.connect(page);
+            if (connection == null)
+                return null;
             Document doc = connection.get();
-            if (connection.response().statusMessage().equals("OK"))
+            if (connection.response().statusMessage() != null && connection.response().statusMessage().equals("OK"))
                 return doc;
             else
                 return null;

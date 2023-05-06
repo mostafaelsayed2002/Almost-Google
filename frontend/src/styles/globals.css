@@ -3,10 +3,10 @@
 @tailwind utilities;
 @layer base {
   body {
-    @apply bg-[#111111] mx-auto px-4 max-w-[1200px] min-h-screen;
+    @apply bg-[#111111] px-4 w-screen min-h-screen;
   }
   #__next {
-    @apply min-h-full;
+    @apply min-h-full max-w-[1200px] mx-auto; 
   }
 }
 @layer utilities {
