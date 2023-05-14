@@ -7,10 +7,19 @@ import com.mongodb.client.MongoDatabase;
 import io.github.cdimascio.dotenv.Dotenv;
 import io.github.cdimascio.dotenv.DotenvBuilder;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.jgrapht.Graph;
 import org.jgrapht.alg.scoring.PageRank;
 import org.jgrapht.graph.DefaultEdge;
+import com.mongodb.client.model.Filters;
 
+import java.util.Arrays;
+
+import org.bson.types.Binary;
+import org.springframework.core.SpringVersion;
+
+import java.io.*;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -20,8 +29,32 @@ public class Ranker {
     private static long webCount;
     private static Graph<String, DefaultEdge> graph;
     private static Map<String, Double> vertexScores;
-    private static MongoCollection<Document> collection;
+    private static MongoCollection<Document> graphCollection;
 
+
+    private static void getGraph() {
+//        Bson filter = Filters.eq("name", "Graph");
+        Document doc = graphCollection.find().first();
+        byte[] graphBytes = doc.get("graph", Binary.class).getData();
+        ByteArrayInputStream bis = new ByteArrayInputStream(graphBytes);
+        ObjectInputStream ois = null;
+        try {
+            ois = new ObjectInputStream(bis);
+            graph = (Graph<String, DefaultEdge>) ois.readObject();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static void getset() {
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream("set.ser"))) {
+            dictionary = (Set<Word>) ois.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
 
     private static void calcRank() {
         var dampingFactor = 0.85;
@@ -39,7 +72,6 @@ public class Ranker {
 
     }
 
-
     private static void sortWeb() {
         for (Word w : dictionary) {
             calcIDF(w);
@@ -50,15 +82,16 @@ public class Ranker {
     private static void initDataBase() {
         Dotenv dotenv = new DotenvBuilder().load();
         MongoClient mongoClient = MongoClients.create(dotenv.get("ConctionString"));
-        MongoDatabase database = mongoClient.getDatabase("AlmostGoogle");
-        collection = database.getCollection("visited");
+        MongoDatabase database = mongoClient.getDatabase("test");
+        graphCollection = database.getCollection("graph");
     }
+
 
     public static void main(String[] args) {
         initDataBase();
-        graph = CrawlerStore.graph;
+        getGraph();
         webCount = graph.vertexSet().size();
-        dictionary = Indexer.dictionary;
+        getset();
         calcRank();
         sortWeb();
     }

@@ -5,10 +5,14 @@ package SearchEngine;
     so there must be a producer
  */
 
-
 import com.mongodb.client.*;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Updates;
+import com.mongodb.client.result.UpdateResult;
 import io.github.cdimascio.dotenv.Dotenv;
 import io.github.cdimascio.dotenv.DotenvBuilder;
+import org.apache.commons.lang.ObjectUtils;
+import org.bson.conversions.Bson;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -24,28 +28,30 @@ import org.jgrapht.graph.DefaultEdge;
 import static com.mongodb.client.MongoClients.create;
 //
 
-
-class CrawlerStore {
+class CrawlerStore  {
   public static int MAX_SIZE = 200;
   public static Graph<String, DefaultEdge> graph = new DefaultDirectedGraph<>(DefaultEdge.class);
   private final Queue<String> queue = new LinkedList<>();
   private final Hashtable<Integer, Boolean> rec = new Hashtable<>();
   private final MongoCollection<org.bson.Document> queueCollection;
   private final MongoCollection<org.bson.Document> visitedCollection;
-
+  private final MongoCollection<org.bson.Document> graphCollection;
 
   private boolean readSeed;
 
-  CrawlerStore(MongoCollection<org.bson.Document> qc, MongoCollection<org.bson.Document> vc) {
+  CrawlerStore(MongoCollection<org.bson.Document> qc, MongoCollection<org.bson.Document> vc,
+      MongoCollection<org.bson.Document> gc) {
     queueCollection = qc;
     visitedCollection = vc;
+    graphCollection = gc;
     readSeed = false;
   }
 
   private static ArrayList<String> readSeeds() {
     ArrayList<String> seeds = new ArrayList<>();
     try {
-      File seedFile = new File("/home/walid/Downloads/vsCode/Almost-Google/backend/src/main/java/SearchEngine/seed.txt");
+      File seedFile = new File(
+          "/home/walid/Downloads/vsCode/Almost-Google/backend/src/main/java/SearchEngine/seed.txt");
       Scanner seedFileScanner = new Scanner(seedFile);
       while (seedFileScanner.hasNextLine()) {
         String link = seedFileScanner.nextLine();
@@ -62,12 +68,20 @@ class CrawlerStore {
     if (!readSeed && visitedCollection.countDocuments(new org.bson.Document().append("url", seeds.get(0))) == 0)
       synchronized (queue) {
         queue.addAll(seeds);
-        initialGraph(seeds);
+        try
+        {
+          initialGraph(seeds);
+        }
+        catch (IOException e )
+        {
+          e.printStackTrace();
+        }
         System.out.println("======================================= Initial Fill ===========================");
       }
     else {
       readSeed = true;
-      FindIterable<org.bson.Document> documentCursor = queueCollection.find().sort(new org.bson.Document().append("_id", 1)).limit(MAX_SIZE);
+      FindIterable<org.bson.Document> documentCursor = queueCollection.find()
+          .sort(new org.bson.Document().append("_id", 1)).limit(MAX_SIZE);
       var urlQueue = new ArrayList<String>();
       for (org.bson.Document document : documentCursor) {
         urlQueue.add((String) document.get("url"));
@@ -75,12 +89,13 @@ class CrawlerStore {
       }
       synchronized (queue) {
         queue.addAll(urlQueue);
+        queue.notifyAll();
       }
     }
   }
 
   public void addToQueueCollection(ArrayList<org.bson.Document> urls) {
-    synchronized (this) {
+    synchronized (queue) {
       queueCollection.insertMany(urls);
     }
   }
@@ -89,13 +104,15 @@ class CrawlerStore {
     synchronized (queue) {
       if (queue.isEmpty()) {
         try {
+          queue.notify();
           queue.wait();
         } catch (InterruptedException e) {
           throw new RuntimeException(e);
         }
       }
       String result = queue.poll();
-      while (rec.containsKey(result.hashCode()) && visitedCollection.countDocuments(new org.bson.Document().append("url", result.hashCode())) != 0)
+      while (rec.containsKey(result.hashCode())
+          && visitedCollection.countDocuments(new org.bson.Document().append("url", result.hashCode())) != 0)
         result = queue.poll();
       return result;
     }
@@ -113,15 +130,17 @@ class CrawlerStore {
   }
 
   public boolean doesDocumentExist(String url, String compactString) {
-    return rec.containsKey(url.hashCode()) || visitedCollection.countDocuments(new org.bson.Document().append("url", url.hashCode())) > 0 || visitedCollection.countDocuments(new org.bson.Document().append("compactString", compactString)) > 0;
+    return rec.containsKey(url.hashCode())
+        || visitedCollection.countDocuments(new org.bson.Document().append("url", url.hashCode())) > 0
+        || visitedCollection.countDocuments(new org.bson.Document().append("compactString", compactString)) > 0;
   }
 
   public int queueSize() {
     return queue.size();
   }
 
-  public void addToGraph(String url, ArrayList<org.bson.Document> urls) {
-    synchronized (queue) {
+  public void addToGraph(String url, ArrayList<org.bson.Document> urls) throws IOException {
+    synchronized (this) {
       System.out.println("------------------------------------------------------------------------");
       System.out.println("--------------------" + url);
       System.out.println("------------------------------------------------------------------------");
@@ -133,31 +152,45 @@ class CrawlerStore {
       }
       System.out.println("------------------------------------------------------------------------");
       for (org.bson.Document u : urls) {
-        if (rec.containsKey(u.get("url").hashCode()) && visitedCollection.countDocuments(new org.bson.Document().append("url", u.get("url").hashCode())) != 0) {
+        if (rec.containsKey(u.get("url").hashCode())
+            && visitedCollection.countDocuments(new org.bson.Document().append("url", u.get("url").hashCode())) != 0) {
           continue;
         } else {
           graph.addVertex(u.get("url").toString());
           graph.addEdge(url, u.get("url").toString());
         }
       }
+      ByteArrayOutputStream bos = new ByteArrayOutputStream();
+      ObjectOutputStream oos = new ObjectOutputStream(bos);
+      oos.writeObject(graph);
+      byte[] graphBytes = bos.toByteArray();
+      Bson filter = Filters.eq("name", "Graph");
+      Bson update = Updates.set("graph", graphBytes);
+      graphCollection.updateOne(filter, update);
     }
   }
 
-  public void initialGraph(ArrayList<String> urls) {
+  public void initialGraph(ArrayList<String> urls) throws IOException {
     graph.addVertex("Head");
     for (String u : urls) {
       graph.addVertex(u);
       graph.addEdge("Head", u);
     }
+    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+    ObjectOutputStream oos = new ObjectOutputStream(bos);
+    oos.writeObject(graph);
+    byte[] graphBytes = bos.toByteArray();
+    graphCollection.insertOne(new org.bson.Document("name", "Graph").append("graph", graphBytes));
     System.out.println("------------------------------------------------------------------------");
     System.out.println(graph.toString());
+
   }
+
 }
 
 class Consumer implements Runnable {
   private static String cwd;
   private static CrawlerStore store;
-
 
   Consumer(CrawlerStore cs) {
     cwd = Paths.get("").toAbsolutePath().toString();
@@ -188,19 +221,20 @@ class Consumer implements Runnable {
   private static Document requestPage(String page) {
     try {
       Connection connection = Jsoup.connect(page);
-      if (connection == null) return null;
+      if (connection == null)
+        return null;
       Document doc = connection.get();
       if (connection.response().statusMessage() != null && connection.response().statusMessage().equals("OK"))
         return doc;
-      else return null;
+      else
+        return null;
     } catch (IOException e) {
       return null;
     }
   }
 
   private static String createCompactString(Document doc) {
-
-    String[] htmlParagraphTags = {"p", "h1", "h2", "h3", "a", "div"};
+    String[] htmlParagraphTags = { "p", "h1", "h2", "h3", "a", "div" };
     StringBuilder CompactString = new StringBuilder();
     for (var tag : htmlParagraphTags) {
       for (var element : doc.select(tag)) {
@@ -209,7 +243,8 @@ class Consumer implements Runnable {
         while (text.length() > 0 && i < text.length() && text.charAt(i) == ' ') {
           i += 1;
         }
-        if (i < text.length()) CompactString.append(text.charAt(i));
+        if (i < text.length())
+          CompactString.append(text.charAt(i));
       }
     }
     return CompactString.substring(CompactString.length() / 2);
@@ -242,7 +277,8 @@ class Consumer implements Runnable {
 
       String pageLink = store.dequeueUrl();
       Document doc;
-      if ((doc = requestPage(pageLink)) == null) continue;
+      if ((doc = requestPage(pageLink)) == null)
+        continue;
       String compactString = createCompactString(doc);
       if (!store.doesDocumentExist(pageLink, compactString)) {
 
@@ -256,12 +292,15 @@ class Consumer implements Runnable {
         }
         if (!linksCrawled.isEmpty()) {
           store.addToQueueCollection(linksCrawled);
-          store.addToGraph(pageLink, linksCrawled);
+          try {
+            store.addToGraph(pageLink, linksCrawled);
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
         }
-        String JsonDocument = (new org.bson.Document().append("url", pageLink).append("document", doc.toString())).toJson();
+        String JsonDocument = (new org.bson.Document().append("url", pageLink).append("document", doc.toString()))
+            .toJson();
         storeHTMLOnDisk(pageLink, JsonDocument);
-
-
       }
     }
   }
@@ -289,13 +328,13 @@ class Producer implements Runnable {
       synchronized (store) {
         if (store.queueSize() >= store.MAX_SIZE) {
           try {
+            store.notifyAll();
             store.wait();
           } catch (InterruptedException e) {
             e.printStackTrace();
           }
         }
         store.fillQueue();
-        store.notifyAll();
       }
     }
   }
@@ -305,28 +344,28 @@ public class Crawler {
   private static MongoDatabase database;
   private static MongoCollection<org.bson.Document> visitedCollection;
   private static MongoCollection<org.bson.Document> queueCollection;
+  private static MongoCollection<org.bson.Document> graphCollection;
   private static CrawlerStore store;
-
 
   public static void main(String[] args) {
     initDatabase();
-    store = new CrawlerStore(queueCollection, visitedCollection);
+    store = new CrawlerStore(queueCollection, visitedCollection, graphCollection);
     ArrayList<Thread> threads = new ArrayList<>();
     for (Integer i = 0; i < 20; i++) {
       threads.add((new Thread(new Consumer(store), "c" + i.toString())));
       threads.get(i).start();
     }
-    (new Thread(new Producer(store), "p1")).start();
-//    for (Integer i = 0; i < 20; i++) {
-//      try {
-//        threads.get(i).join();
-//      } catch (InterruptedException e) {
-//        throw new RuntimeException(e);
-//      }
-//    }
-//    TODO: this should be removed and replaced with joins on the thread
-    while (true) {
+    (new Thread(new Producer(store),"p1")).start();
 
+  // for (Integer i = 0; i < 20; i++) {
+  // try {
+  // threads.get(i).join();
+  // } catch (InterruptedException e) {
+  // throw new RuntimeException(e);
+  // }
+  // }
+  // TODO: this should be removed and replaced with joins on the thread
+  while(true) {
     }
   }
 
@@ -335,5 +374,6 @@ public class Crawler {
     database = mongoClient.getDatabase("test");
     visitedCollection = database.getCollection("visited");
     queueCollection = database.getCollection("queue");
+    graphCollection = database.getCollection("graph");
   }
 }
