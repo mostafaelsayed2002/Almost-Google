@@ -9,6 +9,7 @@ module.exports = {
     extend: {
       colors: {
         body: "rgba(256,256,256,0.5)",
+        link: "#3B82F6"
       },
       fontFamily: {
         playfair: ["var(--font-playfair)"],
