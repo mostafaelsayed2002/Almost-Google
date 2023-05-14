@@ -203,9 +203,10 @@ public class Indexer extends Thread {
             Document document = Document.parse(word.toString());
             Data.add(document);
         }
+        saveSet();
         collection.insertMany(Data);
-    }
 
+    }
 
 }
 
