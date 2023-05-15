@@ -5,13 +5,14 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import org.bson.Document;
 import org.json.JSONObject;
-import org.json.simple.JSONArray;
+import org.json.JSONArray;
 
 import javax.swing.plaf.synth.SynthDesktopIconUI;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.regex.*;
@@ -26,14 +27,6 @@ public class RobotsChecker {
 
     public static void main(String args[]) throws IOException {
         initDatabase();
-
-        String originalPattern = "/books?*q=*";
-        String regex = originalPattern.replaceAll("\\*", ".*").replaceAll("\\?", "\\\\?");
-        regex = Pattern.quote(regex);
-        System.out.println(regex);
-        checkForbidden("https://www.google.com/");
-        isAllowed("https://www.google.com/books?q=something");
-
     }
 
     private static void initDatabase() {
@@ -46,13 +39,18 @@ public class RobotsChecker {
 
         URL url = new URL(urlString);
         var host = url.getHost();
-//        var document = forbidden.find(new Document("url", url)).first();
-//        System.out.println(document);
-
-        return true;
+        Document document = (Document) forbidden.find(new Document().append("url", host)).first();
+        JSONArray routes = new JSONArray((ArrayList<String>) document.get("routes"));
+        String checkPart = url.toString().substring(host.length() + urlString.indexOf(host));
+//        System.out.println(checkPart);
+        for (var route : routes) {
+            if (checkPart.matches((String) route))
+                return true;
+        }
+        return false;
     }
 
-    public static void checkForbidden(String urlString) throws java.net.MalformedURLException, IOException {
+    public static void checkForbidden(String urlString) throws MalformedURLException, IOException {
         URL url = new URL(urlString);
         var protocol = url.getProtocol();
         var host = url.getHost();
@@ -85,7 +83,7 @@ public class RobotsChecker {
                 for (var keyChar : regexKeyCharacters)
                     route = route.replace(keyChar, "\\" + keyChar);
                 route = route.replaceAll("\\*", ".*");
-                routes.add(route);
+                routes.put(route);
 
             } else {
                 flag = false;
