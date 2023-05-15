@@ -1,5 +1,6 @@
 package SearchEngine;
 
+import java.io.Serializable;
 import java.util.Objects;
 import java.util.Vector;
 import java.util.Comparator;
@@ -7,11 +8,11 @@ import java.util.Comparator;
 
 class rankComparator implements Comparator<Website> {
     public int compare(Website w1, Website w2) {
-        return (int) (w1.lastRank - w2.lastRank);
+        return Double.compare(w2.lastRank, w1.lastRank);
     }
 }
 
-public class Word {
+public class Word implements Serializable {
 
     public String word;
     public Vector<Website> websites;
@@ -29,6 +30,7 @@ public class Word {
     public int hashCode() {
         return Objects.hash(word);
     }
+
     @Override
     public boolean equals(Object obj) {
         if (!(obj instanceof Word)) {
@@ -41,6 +43,12 @@ public class Word {
     public void sortWebsites() {
         rankComparator rankcomparator = new rankComparator();
         websites.sort(rankcomparator);
+        System.out.println("-------------------------------------------------------");
+        for (Website w : websites
+        ) {
+            System.out.println(w.lastRank);
+        }
+        System.out.println("-------------------------------------------------------");
     }
 
 }
