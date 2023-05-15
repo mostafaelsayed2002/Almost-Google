@@ -1,13 +1,20 @@
 import { useRouter } from "next/router";
-import { FormEventHandler, useEffect, useState } from "react";
+import { ChangeEventHandler, FormEventHandler, useEffect, useState } from "react";
 
 export const SearchBar = () => {
   const router = useRouter();
-  const [searchTerm, setSearchTerm] = useState("");
+  const { query } = router;
+  const [searchTerm, setSearchTerm] = useState(query.searchterm);
+  
   useEffect(() => {
-    if ( router.pathname === "/result" && router.query.searchTerm)
-      setSearchTerm(searchTerm);
-  }, [])
+    if (query.searchterm) {
+      setSearchTerm(query.searchterm as string);
+    }
+  }, [query.searchterm]);
+
+  const handleInputChange: ChangeEventHandler<HTMLInputElement> = (e) => {
+    setSearchTerm(e.target.value);
+  };
   return (
     <form
       onSubmit={(e) => {
@@ -18,7 +25,8 @@ export const SearchBar = () => {
     >
       <input
         type="text"
-        onChange={(e) => setSearchTerm(e.target.value)}
+        value={searchTerm}
+        onChange={handleInputChange}
         className="bg-transparent outline-none text-white flex-grow w-full "
       />
       <svg
