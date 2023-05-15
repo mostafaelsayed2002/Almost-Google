@@ -13,6 +13,7 @@ import io.github.cdimascio.dotenv.Dotenv;
 import io.github.cdimascio.dotenv.DotenvBuilder;
 import org.apache.commons.lang.ObjectUtils;
 import org.bson.conversions.Bson;
+import org.bson.types.Binary;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -38,6 +39,7 @@ class CrawlerStore {
     private final MongoCollection<org.bson.Document> graphCollection;
 
     private boolean readSeed;
+    private boolean readGraph;
 
     CrawlerStore(MongoCollection<org.bson.Document> qc, MongoCollection<org.bson.Document> vc,
                  MongoCollection<org.bson.Document> gc) {
@@ -45,6 +47,7 @@ class CrawlerStore {
         visitedCollection = vc;
         graphCollection = gc;
         readSeed = false;
+        readGraph = false;
     }
 
     private static ArrayList<String> readSeeds() {
@@ -65,7 +68,8 @@ class CrawlerStore {
 
     public void fillQueue() {
         var seeds = readSeeds();
-        if (!readSeed && visitedCollection.countDocuments(new org.bson.Document().append("url", seeds.get(0))) == 0)
+        if (!readSeed && visitedCollection.countDocuments(new org.bson.Document().append("url", seeds.get(0))) == 0) {
+            readSeed = true;
             synchronized (queue) {
                 queue.addAll(seeds);
                 try {
@@ -75,8 +79,22 @@ class CrawlerStore {
                 }
                 System.out.println("======================================= Initial Fill ===========================");
             }
-        else {
-            readSeed = true;
+        } else {
+            if (!readGraph) {
+                readGraph = true;
+                org.bson.Document doc = graphCollection.find().first();
+                byte[] graphBytes = doc.get("graph", Binary.class).getData();
+                ByteArrayInputStream bis = new ByteArrayInputStream(graphBytes);
+                ObjectInputStream ois = null;
+                try {
+                    ois = new ObjectInputStream(bis);
+                    graph = (Graph<String, DefaultEdge>) ois.readObject();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                } catch (ClassNotFoundException e) {
+                    throw new RuntimeException(e);
+                }
+            }
             FindIterable<org.bson.Document> documentCursor = queueCollection.find()
                     .sort(new org.bson.Document().append("_id", 1)).limit(MAX_SIZE);
             var urlQueue = new ArrayList<String>();
@@ -196,10 +214,12 @@ class CrawlerStore {
 class Consumer implements Runnable {
     private static String cwd;
     private static CrawlerStore store;
+    private static RobotsChecker robotsChecker;
 
     Consumer(CrawlerStore cs) {
         cwd = Paths.get("").toAbsolutePath().toString();
         store = cs;
+        robotsChecker = new RobotsChecker();
     }
 
     private static void storeHTMLOnDisk(String pageLink, String JsonDocument) {
@@ -209,6 +229,7 @@ class Consumer implements Runnable {
             name = name.replace("://", "}");
             name = name.replace("/", "{");
             name = name.replace("?", "`");
+            name = name.replace(":", "&");
             System.out.println(cwd + "/Documents");
             File file = new File(cwd + "/Documents/" + name + ".json");
             System.out.println(file.getName());
@@ -280,7 +301,17 @@ class Consumer implements Runnable {
                 }
             }
 
+
             String pageLink = store.dequeueUrl();
+            try {
+                if (!robotsChecker.isAllowed(pageLink)) {
+                    continue;
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+
             Document doc;
             if ((doc = requestPage(pageLink)) == null)
                 continue;
@@ -353,7 +384,6 @@ public class Crawler {
     private static CrawlerStore store;
 
     public static void main(String[] args) {
-        // TODO: if the Crawler is interrupted then continue the graph should be init from the database not creating a new one
         initDatabase();
         store = new CrawlerStore(queueCollection, visitedCollection, graphCollection);
         ArrayList<Thread> threads = new ArrayList<>();
@@ -361,23 +391,33 @@ public class Crawler {
             threads.add((new Thread(new Consumer(store), "c" + i.toString())));
             threads.get(i).start();
         }
-        (new Thread(new Producer(store), "p1")).start();
 
-        // for (Integer i = 0; i < 20; i++) {
-        // try {
-        // threads.get(i).join();
-        // } catch (InterruptedException e) {
-        // throw new RuntimeException(e);
-        // }
-        // }
-        // TODO: this should be removed and replaced with joins on the thread
+        (new Thread(new Producer(store), "p1")).start();
+        for (Integer i = 0; i < 20; i++) {
+            try {
+                threads.get(i).join();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
 
         // TODO: make it stop when reach 6000 web
 //        File file = new File("D:\\Studying\\Labs\\Almost-Google\\Documents");
 //        String[] doc;
 
         while (true) {
-//            if ((doc = file.list()).length >= 100) {
+//            if ((doc = file.list()).length >= 50) {
+//                System.out.println("-----------------------------------");
+//                System.out.println("-----------------------------------");
+//                System.out.println("-----------------------------------");
+//                System.out.println("-----------------------------------");
+//                System.out.println("-----------------------------------");
+//                System.out.println("-----------------------------------");
+//                System.out.println("-----------------------------------");
+//                System.out.println("-----------------------------------");
+//                System.out.println("-----------------------------------");
+//                System.out.println("-----------------------------------");
+//                System.out.println((doc = file.list()).length);
 //                for (Integer i = 0; i < 10; i++)
 //                    threads.get(i).interrupt();
 //                break;

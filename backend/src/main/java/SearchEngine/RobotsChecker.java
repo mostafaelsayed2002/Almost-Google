@@ -7,8 +7,10 @@ import org.bson.Document;
 import org.json.JSONObject;
 import org.json.JSONArray;
 
+import javax.net.ssl.SSLHandshakeException;
 import javax.swing.plaf.synth.SynthDesktopIconUI;
 import java.io.DataInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -25,41 +27,45 @@ public class RobotsChecker {
         initDatabase();
     }
 
-    public static void main(String args[]) throws IOException {
-        initDatabase();
-    }
-
-    private static void initDatabase() {
+    private void initDatabase() {
         MongoClient mongoClient = MongoClients.create("mongodb://127.0.0.1:27017");
         var database = mongoClient.getDatabase("test");
         forbidden = database.getCollection("forbidden");
     }
 
-    public static boolean isAllowed(String urlString) throws MalformedURLException {
+    private boolean checkForbidden(String urlString) throws MalformedURLException {
 
         URL url = new URL(urlString);
         var host = url.getHost();
         Document document = (Document) forbidden.find(new Document().append("url", host)).first();
         JSONArray routes = new JSONArray((ArrayList<String>) document.get("routes"));
         String checkPart = url.toString().substring(host.length() + urlString.indexOf(host));
-//        System.out.println(checkPart);
         for (var route : routes) {
             if (checkPart.matches((String) route))
-                return true;
+                return false;
         }
-        return false;
+        return true;
     }
 
-    public static void checkForbidden(String urlString) throws MalformedURLException, IOException {
+    public boolean isAllowed(String urlString) throws MalformedURLException, IOException {
         URL url = new URL(urlString);
         var protocol = url.getProtocol();
         var host = url.getHost();
 
         if (forbidden.countDocuments((new Document()).append("url", host)) != 0)
-            return;
+            return checkForbidden(urlString);
 
         URL robotsUrl = new URL(protocol + "://" + host + "/robots.txt");
-        DataInputStream dataInputStream = new DataInputStream(robotsUrl.openStream());
+        DataInputStream dataInputStream;
+        try {
+            dataInputStream = new DataInputStream(robotsUrl.openStream());
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+            return true;
+        } catch (SSLHandshakeException e) {
+            e.printStackTrace();
+            return true;
+        }
         StringBuilder builder = new StringBuilder();
         {
             String line;
@@ -78,17 +84,23 @@ public class RobotsChecker {
             else if (instruction.startsWith("Allow") && flag)
                 continue;
             else if ((instruction.startsWith("Disallow") && flag)) {
-                String route = instruction.split(" ")[1];
+                var instructionArray = instruction.split(" ");
+                if (instructionArray.length < 2)
+                    continue;
+                String route = instructionArray[1];
                 String[] regexKeyCharacters = {".", "+", "?", "^", "$", "[", "]", "|", "(", ")"};
                 for (var keyChar : regexKeyCharacters)
                     route = route.replace(keyChar, "\\" + keyChar);
                 route = route.replaceAll("\\*", ".*");
                 routes.put(route);
 
-            } else {
+            } else if (instruction.startsWith("User-agent:")) {
                 flag = false;
+            } else {
+                continue;
             }
         }
         forbidden.insertOne((new Document()).append("url", host).append("routes", routes));
+        return checkForbidden(urlString);
     }
 }

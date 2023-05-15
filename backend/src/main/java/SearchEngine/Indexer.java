@@ -62,6 +62,7 @@ public class Indexer extends Thread {
         ObjectMapper objectMapper = new ObjectMapper();
         try {
             file = new File("D:\\Studying\\Labs\\Almost-Google\\Documents\\" + fileName);
+            System.out.println(fileName);
             JsonNode jsonNode = objectMapper.readValue(file, JsonNode.class);
             content = jsonNode.get("document").getTextValue();
             currenturl = jsonNode.get("url").getTextValue();
@@ -76,16 +77,6 @@ public class Indexer extends Thread {
 
     static void InsertUpdate(String[] words, int i) {
 
-//        for (Word wo : dictionary) {
-//            if (wo.word.equals("nctb")) {
-//                System.out.println("------------------------------------");
-//                System.out.println(++cnt);
-//                System.out.println(currenturl);
-//                System.out.println(wo.websites.get(0));
-//                System.out.println(wo.websites.get(0).TF);
-//                System.out.println("------------------------------------");
-//            }
-//        }
         for (String word : words) {  /* For each word int this tag,insert it in the data structure */
             word = word.replaceAll("[^a-zA-Z\\\\s]", ""); /* Delete all numbers and all punctuations*/
             if (word.equals("")) continue;
@@ -97,7 +88,6 @@ public class Indexer extends Thread {
                 word = stemmer.getCurrent();
                 Word w = new Word(); /* creat a word object and set its value */
                 w.word = word.toLowerCase();
-
 
                 if (dictionary.contains(w)) { /* Check if this word already inserted */
                     for (Word item : dictionary) { /* We need to get this word and update it then insert it */
@@ -143,10 +133,7 @@ public class Indexer extends Thread {
                 }
 
                 dictionary.add(w); /* add it to the dictionary */
-//                if (w.word.equals("nctb")) {
-//                    System.out.println(currenturl);
-//                    System.out.println(w.websites.get(0).TF);
-//                }
+
             }
 
         }
@@ -185,16 +172,8 @@ public class Indexer extends Thread {
                 }
             }
 
-
+            ArrayList<Word> wordToRemove = new ArrayList<>();
             for (Word word : dictionary) {
-//                if (word.word.equals("nctb")) {
-//                    System.out.println("------------------------------------");
-//                    System.out.println(++cnt);
-//                    System.out.println(currenturl);
-//                    System.out.println(word.websites.get(0));
-//                    System.out.println(word.websites.get(0).TF);
-//                    System.out.println("------------------------------------");
-//                }
                 for (Website web : word.websites) {
                     if (web.url == currenturl) {
                         float NTF = (web.TF / count) * 100;
@@ -203,6 +182,12 @@ public class Indexer extends Thread {
                         break;
                     }
                 }
+                if (word.websites.size() == 0) {
+                    wordToRemove.add(word);
+                }
+            }
+            for (Word w : wordToRemove) {
+                dictionary.remove(w);
             }
 
         }
