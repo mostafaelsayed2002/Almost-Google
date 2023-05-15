@@ -4,25 +4,14 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
 
-import io.github.cdimascio.dotenv.Dotenv;
-import io.github.cdimascio.dotenv.DotenvBuilder;
 import kotlin.Pair;
-import org.bson.Document;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
-import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.MongoCollection;
 import org.tartarus.snowball.ext.englishStemmer;
 
 
@@ -61,7 +50,7 @@ public class Indexer extends Thread {
         File file;
         ObjectMapper objectMapper = new ObjectMapper();
         try {
-            file = new File("D:\\Studying\\Labs\\Almost-Google\\Documents\\" + fileName);
+            file = new File("/home/walid/Downloads/vsCode/Almost-Google/backend/Documents/" + fileName);
             System.out.println(fileName);
             JsonNode jsonNode = objectMapper.readValue(file, JsonNode.class);
             content = jsonNode.get("document").getTextValue();
@@ -69,7 +58,7 @@ public class Indexer extends Thread {
 //            content = new String(Files.readAllBytes(Paths.get("D:\\Studying\\Labs\\Almost-Google\\Documents\\" + fileName)));  //get the content of the file
 
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println(e.toString());
         }
         return Jsoup.parse(content);
     }
@@ -143,19 +132,18 @@ public class Indexer extends Thread {
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream("set.ser"))) {
             oos.writeObject(dictionary);
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println(e.toString());
         }
     }
 
     public static void main(String[] args) {
 
 //        initDataBase();
-        File file = new File("D:\\Studying\\Labs\\Almost-Google\\Documents");
+        File file = new File("/home/walid/Downloads/vsCode/Almost-Google/backend/Documents");
         names = file.list();
 
 
         long startTime = System.currentTimeMillis();
-
         int num = 0;
         for (String name : names) {   /// === 3
             count = 0;

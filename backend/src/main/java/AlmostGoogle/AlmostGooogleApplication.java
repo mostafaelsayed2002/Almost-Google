@@ -30,9 +30,9 @@ public class AlmostGooogleApplication {
   static org.jsoup.nodes.Document ParseDoc(String fileName) {
     String content = null;
     try {
-      content = new String(Files.readAllBytes(Paths.get("/Users/mac/Desktop/Almost-Google/backend/src/main/java/" + fileName + ".html")));  //get the content of the file
+      content = new String(Files.readAllBytes(Paths.get("/home/walid/Downloads/vsCode/Almost-Google/backend/Documents" + fileName + ".html")));  //get the content of the file
     } catch (Exception e) {
-      e.printStackTrace();
+      System.out.println(e.toString());
     }
     return Jsoup.parse(content);
   }
@@ -105,7 +105,7 @@ public class AlmostGooogleApplication {
         w.title = website.getString("title");
         w.TF = website.getInteger("TF");
         //w.lastRank= website.getDouble("lastRank");
-        w.lastRank = website.getInteger("lastRank");
+        w.lastRank = website.getDouble("lastRank");
         List<Document> places = (List<Document>) website.get("places");
         for (Document place : places) {
           String tag = place.getString("place");
@@ -117,6 +117,8 @@ public class AlmostGooogleApplication {
     }
 
     Vector<Website> Intersection = new Vector<>();
+    if (Graph.size() == 0)
+      return new ArrayList<>();
     for (Website web : Graph.get(0)) {
 
       int rank = 0;
@@ -143,7 +145,14 @@ public class AlmostGooogleApplication {
       Vector<Website> ToRemove = new Vector<>();
 
       for (Website web : Intersection) {
+        String name = web.url;
+        name = name.replace("*", "`{}");
+        name = name.replace("://", "}");
+        name = name.replace("/", "{");
+        name = name.replace("?", "`");
+        name = name.replace(":", "&");
         org.jsoup.nodes.Document doc = ParseDoc(web.title);
+
         String text = doc.text();
         if (!text.contains(PhraseSearch))
           ToRemove.add(web);

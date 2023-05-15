@@ -43,9 +43,9 @@ public class Ranker {
             ois = new ObjectInputStream(bis);
             graph = (Graph<String, DefaultEdge>) ois.readObject();
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            System.out.println(e.toString());
         } catch (ClassNotFoundException e) {
-            throw new RuntimeException(e);
+            System.out.println(e.toString());
         }
     }
 
@@ -54,7 +54,7 @@ public class Ranker {
             dictionary = (Set<Word>) ois.readObject();
             System.out.println(dictionary.size());
         } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
+            System.out.println(e.toString());
         }
     }
 
@@ -93,10 +93,10 @@ public class Ranker {
         graphCollection = _database.getCollection("graph");
 
 //        --------------------------------------------------
-        Dotenv dotenv = new DotenvBuilder().load();
-        MongoClient mongoClient = MongoClients.create(dotenv.get("ConctionString"));
-        MongoDatabase database = mongoClient.getDatabase("AlmostGoogle");
-        wordCollection = database.getCollection("searchIndexer");
+//        Dotenv dotenv = new DotenvBuilder().load();
+//        MongoClient mongoClient = MongoClients.create(dotenv.get("ConctionString"));
+//        MongoDatabase database = mongoClient.getDatabase("AlmostGoogle");
+        wordCollection = _database.getCollection("searchIndexer");
     }
 
     private static void insertIntoDatabase() {
