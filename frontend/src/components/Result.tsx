@@ -63,3 +63,5 @@ export const Result = ({ isLoading, brief, title, url, word, stem }: props) => {
     </section>
   );
 };
+
+
