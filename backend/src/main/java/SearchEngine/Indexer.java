@@ -139,7 +139,7 @@ public class Indexer extends Thread {
         File file;
         ObjectMapper objectMapper = new ObjectMapper();
         try {
-            file = new File("D:\\Studying\\Labs\\Almost-Google\\Documents\\" + fileName);
+            file = new File("/home/walid/Downloads/vsCode/Almost-Google/backend/Documents/" + fileName);
             System.out.println(fileName);
             JsonNode jsonNode = objectMapper.readValue(file, JsonNode.class);
 //            content = new String(Files.readAllBytes(Paths.get("D:\\Studying\\Labs\\Almost-Google\\Documents\\" + fileName)));  //get the content of the file
