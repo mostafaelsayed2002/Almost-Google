@@ -7,15 +7,16 @@ export default function ResultPage() {
   const router = useRouter();
   const { searchterm } = router.query;
   const [data, setData] = useState<result[]>();
+  const [pageCount, setPageCount] = useState<>();
   const [isLoading, setIsLoading] = useState(true);
   const [noResult, setNoResults] = useState(false);
 
   useEffect (() => {
-    setData([]); 
+    setData([]);
     setIsLoading(true);
     setNoResults(false);
   }, [router.query.searchterm])
-  
+
   useEffect(() => {
     if (!searchterm) return;
     setIsLoading(true);
@@ -25,6 +26,7 @@ export default function ResultPage() {
       const data = await res.json();
       setIsLoading(false);
       setData(data);
+      setPageCount(data.length)
       console.log(data);
       if (data.length == 0)
         setNoResults(true)
@@ -33,7 +35,7 @@ export default function ResultPage() {
   }, [searchterm]);
   return (
     <div className="flex flex-col gap-4 py-8 items-center w-full">
-      {data && data.length 
+      {data && data.length
         ? data.map((result, i) => (
             <Result
               isLoading={isLoading}
@@ -54,8 +56,15 @@ export default function ResultPage() {
           <p className="text-6xl font-roboto text-white text-center">404</p>
           <p className="p">Search for something else</p>
         </section>
-        : null 
+        : null
       }
+       <div className={"flex space-x-2"}>
+               {Array.from({ length: 10 }, (_, i) => (
+                 <button key={i} className={"border-2 border-white px-2 py-2 rounded-lg text-white"}>
+                   {i + 1}
+                 </button>
+               ))}
+       </div>
     </div>
   );
 }

@@ -10,7 +10,6 @@ import kotlin.Pair;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.jgrapht.Graph;
-import org.jgrapht.alg.scoring.PageRank;
 import org.jgrapht.graph.DefaultEdge;
 import com.mongodb.client.model.Filters;
 
@@ -74,7 +73,6 @@ public class Ranker {
     }
 
     private static void getGraph() {
-//        Bson filter = Filters.eq("name", "Graph");
         Document doc = graphCollection.find().first();
         byte[] graphBytes = doc.get("graph", Binary.class).getData();
         ByteArrayInputStream bis = new ByteArrayInputStream(graphBytes);
@@ -99,14 +97,6 @@ public class Ranker {
         }
     }
 
-    private static void calcRank() {
-        var dampingFactor = 0.85;
-        PageRank<String, DefaultEdge> pageRank = new PageRank<>(graph, dampingFactor, 100);
-        urlScores = pageRank.getScores();
-//        System.out.println("------------------------------------------------------");
-//        System.out.println(vertexScores);
-    }
-
     private static void calcIDF(Word w) {
         // this calculates IDF and set the rank for each website
         System.out.println(w.word);
@@ -119,7 +109,6 @@ public class Ranker {
             s.pageRank = urlScores.get(s.url);
             s.lastRank = s.TF_IDF * s.pageRank;
         }
-
     }
 
     private static void sortWeb() {
@@ -133,11 +122,6 @@ public class Ranker {
         MongoClient _mongoClient = MongoClients.create("mongodb://127.0.0.1:27017");
         MongoDatabase _database = _mongoClient.getDatabase("test");
         graphCollection = _database.getCollection("graph");
-
-//        --------------------------------------------------
-//        Dotenv dotenv = new DotenvBuilder().load();
-//        MongoClient mongoClient = MongoClients.create(dotenv.get("ConctionString"));
-        MongoDatabase databasease = _mongoClient.getDatabase("AlmostGoogle");
         wordCollection = _database.getCollection("searchIndexer3");
     }
 
@@ -174,8 +158,6 @@ public class Ranker {
         getGraph();
         getset();
         calcPageRank(0.85, 100);
-//        calcRank();
-//        System.out.println("Done");
         sortWeb();
         insertIntoDatabase();
     }

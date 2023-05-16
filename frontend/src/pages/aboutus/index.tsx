@@ -83,9 +83,7 @@ const FeatureCreator =  ({name, text, img, twitter, github, linkedin} : creator)
 export default function AboutUs() {
   return (
     <div className="flex flex-col gap-16 py-16">
-      <section className="flex flex-col gap-8 w-full items-center">
-        <Logo />
-      </section>
+
 
       <section className="flex flex-col lg:flex-row justify-between gap-4">
         <section className="flex flex-col gap-4 mt-24 ">
