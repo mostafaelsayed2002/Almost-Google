@@ -43,9 +43,9 @@ public class AlmostGooogleApplication {
 
   static MongoCollection<Document> InitDataBase() {
     Dotenv dotenv = new DotenvBuilder().load();
-    MongoClient mongoClient = MongoClients.create(dotenv.get("ConctionString"));
-    MongoDatabase database = mongoClient.getDatabase("AlmostGoogle");
-    var collection = database.getCollection("searchIndexer");
+    MongoClient mongoClient = MongoClients.create("mongodb://127.0.0.1:27017");
+    MongoDatabase database = mongoClient.getDatabase("test");
+    var collection = database.getCollection("searchIndexer3");
     return collection;
   }
 
@@ -97,6 +97,8 @@ public class AlmostGooogleApplication {
     for (int i = 0; i < words.size(); i++) {
       Document query = new Document("word", words.get(i).toLowerCase());
       Document result = collection.find(query).first();
+
+//      var from = (page - 1) * 10;
       List<Document> websites = (List<Document>) result.get("websites");
 
       for (Document website : websites) {
