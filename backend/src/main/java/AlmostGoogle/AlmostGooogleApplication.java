@@ -11,18 +11,22 @@ import io.github.cdimascio.dotenv.DotenvBuilder;
 import kotlin.Pair;
 import org.bson.Document;
 import org.bson.json.JsonObject;
+import org.codehaus.jackson.JsonNode;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.data.convert.ReadingConverter;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.web.bind.annotation.*;
 import org.tartarus.snowball.ext.englishStemmer;
 
+import javax.print.Doc;
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.regex.Pattern;
 
 @SpringBootApplication
 @RestController
@@ -32,7 +36,10 @@ public class AlmostGooogleApplication {
     static org.jsoup.nodes.Document ParseDoc(String fileName) {
         String content = null;
         try {
-            content = new String(Files.readAllBytes(Paths.get("D:\\Studying\\Labs\\Almost-Google\\Documents\\" + fileName + ".json")));  //get the content of the file
+            File file = new File("/home/walid/Downloads/vsCode/Almost-Google/backend/Documents/" + fileName + ".json" );
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode jsonNode = objectMapper.readValue(file, JsonNode.class);
+            content = jsonNode.get("document").getTextValue();
         } catch (Exception e) {
             System.out.println(e.toString());
         }
@@ -67,10 +74,10 @@ public class AlmostGooogleApplication {
         boolean type = true;
         if (Input.charAt(0) == '\"' && Input.charAt(Input.length() - 1) == '\"') type = false;
         englishStemmer stemmer = new englishStemmer();
-        String PhraseSearch = "";
-        String[] input = Input.split("\\s");
-        Vector<String> words = new Vector<>();
 
+        String PhraseSearch = "";
+        Vector<String> words = new Vector<>();
+        String[] input = Input.replaceAll("\"", "").split("\\s");
         for (String word : input) {
             word = word.replaceAll("[^a-zA-Z\\\\s]", "");
             if (word.equals("")) continue;
@@ -84,11 +91,8 @@ public class AlmostGooogleApplication {
                 stemmer.stem();
                 word = stemmer.getCurrent();
                 words.add(word);
-
-
             }
         }
-
 
         Vector<HashSet<Website>> Graph = new Vector<>();
         for (int i = 0; i < words.size(); i++) {
@@ -103,10 +107,7 @@ public class AlmostGooogleApplication {
             Document result = collection.find(query).first();
 
             List<Document> websites = ((List<Document>) result.get("websites"));
-            numberOfWebsites = websites.size();
-            int startIndex = (pageNumber - 1) * 10;
-            int endIndex = Math.min(startIndex + 10, websites.size());
-            websites = websites.subList(startIndex, endIndex);
+
 
             for (Document website : websites) {
                 Website w = new Website();
@@ -125,7 +126,7 @@ public class AlmostGooogleApplication {
             }
         }
 
-        Vector<Website> Intersection = new Vector<>();
+        ArrayList<Website> Intersection = new ArrayList<>();
         if (Graph.size() == 0)
             return new Document();
         for (Website web : Graph.get(0)) {
@@ -160,10 +161,10 @@ public class AlmostGooogleApplication {
                 name = name.replace("/", "{");
                 name = name.replace("?", "`");
                 name = name.replace(":", "&");
-                org.jsoup.nodes.Document doc = ParseDoc(web.title);
+                org.jsoup.nodes.Document doc = ParseDoc(name);
 
                 String text = doc.text();
-                if (!text.contains(PhraseSearch))
+                if (!Pattern.compile(Pattern.quote(PhraseSearch), Pattern.CASE_INSENSITIVE).matcher(text).find())
                     ToRemove.add(web);
                 else {
                     boolean flag = false;
@@ -195,16 +196,23 @@ public class AlmostGooogleApplication {
         Collections.sort(Intersection, myComparator);
 
 
-        for (Website web : Intersection)
-            System.out.println(" url: " + web.url + " lastRank: " + web.lastRank);
+//        for (Website web : Intersection)
+//            System.out.println(" url: " + web.url + " lastRank: " + web.lastRank);
         // for single words only
         ArrayList<Result> results = new ArrayList<>();
         for (Website web : Intersection) {
             var x = new Result(web.url, web.places.get(0).getSecond(), web.title);
             results.add(x);
         }
+
+        int startIndex = (pageNumber - 1) * 10;
+        int endIndex = Math.min(startIndex + 10, results.size());
+        numberOfWebsites = results.size();
+        var x  = results.subList(startIndex, endIndex);
+        System.out.println(x);
+
         Document result = new Document();
-        result.append("numberOfWebsites", numberOfWebsites).append("websites", results);
+        result.append("numberOfWebsites", numberOfWebsites).append("websites", x);
         return result;
     }
 }

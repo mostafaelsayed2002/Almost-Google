@@ -4,8 +4,9 @@ import { useRouter } from "next/router";
 interface props {
   number: number;
   active: boolean;
+  element?: string; 
 }
-export const PaginationButton = ({ number, active }: props) => {
+export const PaginationButton = ({ number, active, element }: props) => {
   const router = useRouter();
   const { Input } = router.query;
 
@@ -17,7 +18,7 @@ export const PaginationButton = ({ number, active }: props) => {
       } px-4 py-2 rounded-lg font-roboto`}
       href={`/result?Input=${Input}&page=${number}`}
     >
-      {number}
+      {element? element: number}
     </a>
   );
 };
