@@ -10,11 +10,13 @@ import io.github.cdimascio.dotenv.Dotenv;
 import io.github.cdimascio.dotenv.DotenvBuilder;
 import kotlin.Pair;
 import org.bson.Document;
+import org.bson.json.JsonObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.data.convert.ReadingConverter;
 import org.springframework.web.bind.annotation.*;
 import org.tartarus.snowball.ext.englishStemmer;
 
@@ -58,7 +60,9 @@ public class AlmostGooogleApplication {
 
     @GetMapping("/")
     @CrossOrigin(origins = "http://localhost:3000")
-    public @ResponseBody ArrayList<Result> getResult(@RequestParam String Input) {
+    public @ResponseBody Document getResult(@RequestParam String Input , @RequestParam String page) {
+        var pageNumber = Integer.parseInt(page);
+        var numberOfWebsites = 0;
 
         boolean type = true;
         if (Input.charAt(0) == '\"' && Input.charAt(Input.length() - 1) == '\"') type = false;
@@ -98,8 +102,11 @@ public class AlmostGooogleApplication {
             Document query = new Document("word", words.get(i).toLowerCase());
             Document result = collection.find(query).first();
 
-//      var from = (page - 1) * 10;
-            List<Document> websites = (List<Document>) result.get("websites");
+            List<Document> websites = ((List<Document>) result.get("websites"));
+            numberOfWebsites = websites.size();
+            int startIndex = (pageNumber - 1) * 10;
+            int endIndex = Math.min(startIndex + 10, websites.size());
+            websites = websites.subList(startIndex, endIndex);
 
             for (Document website : websites) {
                 Website w = new Website();
@@ -120,7 +127,7 @@ public class AlmostGooogleApplication {
 
         Vector<Website> Intersection = new Vector<>();
         if (Graph.size() == 0)
-            return new ArrayList<>();
+            return new Document();
         for (Website web : Graph.get(0)) {
 
             int rank = 0;
@@ -196,6 +203,8 @@ public class AlmostGooogleApplication {
             var x = new Result(web.url, web.places.get(0).getSecond(), web.title);
             results.add(x);
         }
-        return results;
+        Document result = new Document();
+        result.append("numberOfWebsites", numberOfWebsites).append("websites", results);
+        return result;
     }
 }

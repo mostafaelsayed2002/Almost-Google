@@ -4,28 +4,28 @@ import { ChangeEventHandler, FormEventHandler, useEffect, useState } from "react
 export const SearchBar = () => {
   const router = useRouter();
   const { query } = router;
-  const [searchTerm, setSearchTerm] = useState(query.searchterm);
+  const [Input, setInput] = useState(query.Input);
   
   useEffect(() => {
-    if (query.searchterm) {
-      setSearchTerm(query.searchterm as string);
+    if (query.Input) {
+      setInput(query.Input as string);
     }
-  }, [query.searchterm]);
+  }, [query.Input]);
 
   const handleInputChange: ChangeEventHandler<HTMLInputElement> = (e) => {
-    setSearchTerm(e.target.value);
+    setInput(e.target.value);
   };
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
-        router.push(`/result/?searchterm=${searchTerm}`);
+        router.push(`/result/?Input=${Input}&page=1`);
       }}
       className="w-full border-2 border-body flex rounded-lg bg-black md:p-4 p-2"
     >
       <input
         type="text"
-        value={searchTerm}
+        value={Input}
         onChange={handleInputChange}
         className="bg-transparent outline-none text-white flex-grow w-full "
       />
