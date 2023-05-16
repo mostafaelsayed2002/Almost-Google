@@ -1,38 +1,41 @@
+import { Pagination } from "@/components/Pagination";
+import { PaginationButton } from "@/components/PaginationButton";
 import { Result } from "@/components/Result";
 import { result } from "@/utils/types/result";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { ReactElement, useEffect, useState } from "react";
 
 export default function ResultPage() {
   const router = useRouter();
-  const { searchterm } = router.query;
+  const { Input, page } = router.query;
   const [data, setData] = useState<result[]>();
-  const [pageCount, setPageCount] = useState<>();
+  
   const [isLoading, setIsLoading] = useState(true);
   const [noResult, setNoResults] = useState(false);
+
+  const [numberOfWebsites, setNumberOfWebsites] = useState(0);
 
   useEffect (() => {
     setData([]);
     setIsLoading(true);
     setNoResults(false);
-  }, [router.query.searchterm])
+  }, [router.query.searchterm, router.query.pageNumber])
 
   useEffect(() => {
-    if (!searchterm) return;
+    if (!Input) return;
     setIsLoading(true);
     const fetchResults = async () => {
       setIsLoading(true);
-      const res = await fetch(`http://localhost:8080/?Input=${searchterm}`);
+      const res = await fetch(`http://localhost:8080/?Input=${Input}&page=${page as string}`);
       const data = await res.json();
       setIsLoading(false);
-      setData(data);
-      setPageCount(data.length)
-      console.log(data);
+      setData(data.websites);
+      setNumberOfWebsites(data.numberOfWebsites)
       if (data.length == 0)
         setNoResults(true)
     };
     fetchResults();
-  }, [searchterm]);
+  }, [Input]);
   return (
     <div className="flex flex-col gap-4 py-8 items-center w-full">
       {data && data.length
@@ -44,7 +47,7 @@ export default function ResultPage() {
               url={result.url}
               stem={result.stem}
               key={i}
-              word={searchterm ? searchterm?.toString() : ""}
+              word={Input ? Input?.toString() : ""}
             />
           ))
         : !noResult ? Array.from(Array(10).keys()).map((i) => (
@@ -58,13 +61,9 @@ export default function ResultPage() {
         </section>
         : null
       }
-       <div className={"flex space-x-2"}>
-               {Array.from({ length: 10 }, (_, i) => (
-                 <button key={i} className={"border-2 border-white px-2 py-2 rounded-lg text-white"}>
-                   {i + 1}
-                 </button>
-               ))}
-       </div>
+       {
+        <Pagination currentActive={Number.parseInt(page as string)} numberOfWebsites={numberOfWebsites} />
+       }
     </div>
   );
 }
