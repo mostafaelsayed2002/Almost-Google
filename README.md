@@ -2,8 +2,8 @@
   
   ![Almost Google](https://github.com/mostafaelsayed2002/Almost-Google/blob/main/assets/logo.png)
   
-  ![GitHub repo size](https://img.shields.io/github/repo-size/mostafaelsayed2002/almost-google?style=plastic)
-  ![GitHub top language](https://img.shields.io/github/languages/top/mostafaelsayed2002/almost-google?style=plastic)
+  ![GitHub repo size](https://img.shields.io/github/repo-size/mostafaelsayed2002/Almost-Google?style=plastic)
+  ![GitHub top language](https://img.shields.io/github/languages/top/mostafaelsayed2002/Almost-Google?style=plastic)
   
   # Almost Google
   
