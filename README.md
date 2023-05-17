@@ -37,14 +37,22 @@ Once the search engine is running, you can use the following steps to perform se
 
 ## Screenshots
 
+### Home Page
 ![Almost Google homepage](https://github.com/mostafaelsayed2002/Almost-Google/blob/main/assets/homepage.png)
 
+### Search Python
 ![Almost Google Python](https://github.com/mostafaelsayed2002/Almost-Google/blob/main/assets/python.png)
 
+### Search React
 ![Almost Google React](https://github.com/mostafaelsayed2002/Almost-Google/blob/main/assets/react.png)
 
+### Search Github
+![Almost Google Github](https://github.com/mostafaelsayed2002/Almost-Google/blob/main/assets/github.png)
+
+### Phrase Search
 ![Almost Google phrase search](https://github.com/mostafaelsayed2002/Almost-Google/blob/main/assets/phrase-search.png)
 
+### About us
 ![Almost Google aboutus](https://github.com/mostafaelsayed2002/Almost-Google/blob/main/assets/aboutus.png)
 
 ## Limitations
