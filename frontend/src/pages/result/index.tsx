@@ -9,36 +9,42 @@ export default function ResultPage() {
   const router = useRouter();
   const { Input, page } = router.query;
   const [data, setData] = useState<result[]>();
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const [noResult, setNoResults] = useState(false);
 
   const [numberOfWebsites, setNumberOfWebsites] = useState(0);
 
-  useEffect (() => {
+  useEffect(() => {
     setData([]);
     setIsLoading(true);
     setNoResults(false);
-  }, [router.query.searchterm, router.query.pageNumber])
+  }, [router.query.searchterm, router.query.pageNumber]);
 
   useEffect(() => {
     if (!Input) return;
     setIsLoading(true);
     const fetchResults = async () => {
       setIsLoading(true);
-      const res = await fetch(`http://localhost:8080/?Input=${Input}&page=${page as string}`);
-      const data = await res.json();
+      const res = await fetch(
+        `http://localhost:8080/?Input=${Input}&page=${page as string}`
+      );
       setIsLoading(false);
+      if (!res.ok) {
+        setNoResults(true);
+        return;
+      }
+      const data = await res.json();
       setData(data.websites);
-      setNumberOfWebsites(data.numberOfWebsites)
-      if (data.length == 0)
-        setNoResults(true)
+      setNumberOfWebsites(data.numberOfWebsites);
+      if (data.length == 0) setNoResults(true);
+      else setNoResults(false);
     };
     fetchResults();
   }, [Input]);
   return (
-    <div className="flex flex-col gap-4 py-8 items-center w-full">
-      {data && data.length
+    <div className="flex flex-col gap-4 py-8 items-center w-full justify-between h-full">
+      {data && data.length && !noResult
         ? data.map((result, i) => (
             <Result
               isLoading={isLoading}
@@ -50,20 +56,32 @@ export default function ResultPage() {
               word={Input ? Input?.toString() : ""}
             />
           ))
-        : !noResult ? Array.from(Array(10).keys()).map((i) => (
-            <Result isLoading={true} brief="" title="" url="" word="" stem="" key={i} />
-          )) : null}
-      {
-        noResult ?
+        : !noResult
+        ? Array.from(Array(10).keys()).map((i) => (
+            <Result
+              isLoading={true}
+              brief=""
+              title=""
+              url=""
+              word=""
+              stem=""
+              key={i}
+            />
+          ))
+        : null}
+      {noResult ? (
         <section className="flex flex-col gap-4">
           <p className="text-6xl font-roboto text-white text-center">404</p>
           <p className="p">Search for something else</p>
         </section>
-        : null
+      ) : null}
+      {
+        !noResult ?  
+        <Pagination
+          currentActive={Number.parseInt(page as string)}
+          numberOfWebsites={numberOfWebsites}
+        /> : null
       }
-       {
-        <Pagination currentActive={Number.parseInt(page as string)} numberOfWebsites={numberOfWebsites} />
-       }
     </div>
   );
 }

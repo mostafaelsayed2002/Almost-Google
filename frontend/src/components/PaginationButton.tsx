@@ -22,4 +22,3 @@ export const PaginationButton = ({ number, active, element }: props) => {
     </a>
   );
 };
-/*  */
